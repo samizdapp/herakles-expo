@@ -13,7 +13,7 @@ export default function App({ devIP }) {
 }
 
 App.defaultProps = {
-  devIP: Constants.manifest.extra.devIP || "setup.local",
+  devIP: Constants?.manifest?.extra?.devIP || "setup.local",
 };
 
 const styles = StyleSheet.create({
