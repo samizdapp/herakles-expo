@@ -38,7 +38,7 @@ class MyWeb extends Component {
 
   fetchLocalFile = async () => {
     let file = Asset.fromModule(require("./assets/fetch.inject.txt"));
-    await file.downloadAsync(); // Optional, saves file into cache
+    // await file.downloadAsync(); // Optional, saves file into cache
     file = await fetch(file.uri);
     file = await file.text();
     this.setState({ copy: file });
