@@ -13,7 +13,7 @@ const WrappedWebView = ({ onMessage, address, refFN, onLoad, display }) => {
     <WebView
       ref={refFN}
       key={address}
-      style={display ? {} : { display: "none", height: 0 }}
+      style={display ? {} : { display: "none", maxHeight: "0px" }}
       source={{
         uri: `${address}/harness/cinny/?expo=true`,
       }}
