@@ -6,23 +6,8 @@ import { Asset, useAssets } from "expo-asset";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import { useState } from "react";
+import { width } from "@mui/system";
 
-const WrappedWebView = ({ onMessage, address, refFN, onLoad, display }) => {
-  // const [view, setView] = useState(null)
-  return display ? (
-    <WebView
-      ref={refFN}
-      key={address}
-      style={display ? {} : { display: "none", maxHeight: "0px" }}
-      source={{
-        uri: `${address}/harness/cinny/?expo=true`,
-      }}
-      scalesPageToFit={false}
-      onLoad={onLoad}
-      onMessage={onMessage}
-    />
-  ) : null;
-};
 class MyWeb extends Component {
   private webview: any = null;
   constructor(props) {
@@ -30,11 +15,14 @@ class MyWeb extends Component {
     this.state = {
       copy: null,
       appState: AppState.currentState,
+      lan: props.devIP,
+      loading: true,
     };
   }
 
   reload() {
     this.setState({ loading: true, display: null }, () => {
+      console.log("reload?");
       this.lan && this.lan.reload();
       this.wan && this.wan.reload();
     });
@@ -45,29 +33,46 @@ class MyWeb extends Component {
     this.appStateSubscription = AppState.addEventListener(
       "change",
       (nextAppState) => {
+        console.log("nextAppState", nextAppState, this.state.appState);
         if (
           this.state.appState.match(/inactive|background/) &&
           nextAppState === "active"
         ) {
-          this.reload();
+          // this.
         }
         this.setState({ appState: nextAppState });
       }
     );
     this.unsubscribeNetInfo = NetInfo.addEventListener((state) => {
-      this.reload();
+      console.log("NetInfo", state);
+      let reload = false;
+
+      if (this.state.net && this.state.net !== state) {
+        reload = true;
+      }
+      this.setState(
+        {
+          net: state,
+        },
+        () => {
+          if (reload) {
+            this.reload();
+          }
+        }
+      );
     });
 
     AsyncStorage.getItem("addresses")
       .then((r) => {
+        throw new Error();
         const routes = JSON.parse(r);
         routes.lan = routes.lan.trim();
         this.setState(routes);
       })
       .catch((e) => {
-        this.setState({
-          lan: this.props.devIP,
-        });
+        // this.setState({
+        //   lan: this.props.devIP,
+        // });
       });
   }
 
@@ -91,50 +96,97 @@ class MyWeb extends Component {
         {this.state.copy ? (
           <>
             {this.state.wan ? (
-              <WrappedWebView
-                display={this.state.loading || this.state.display === this.wan}
-                refFN={(ref) => {
-                  console.log("make ref", ref);
+              <WebView
+                style={
+                  this.state.display === "wan"
+                    ? styles.container
+                    : styles.hidden
+                }
+                containerStyle={
+                  this.state.display === "wan"
+                    ? styles.container
+                    : styles.hidden
+                }
+                key={this.state.wan}
+                ref={(ref) => {
+                  console.log(
+                    "make ref wan",
+                    this.state.wan,
+                    this.state.display
+                  );
                   this.wan = ref;
                 }}
-                address={
-                  "http://" + this.state.wan + ":8080/harness/cinny/?expo=true"
-                }
+                scalesPageToFit={false}
+                source={{
+                  uri:
+                    "http://" +
+                    this.state.wan +
+                    ":9090/harness/cinny/?expo=true",
+                }}
+                onError={(e) => {
+                  console.log("error", e);
+                }}
                 onLoad={() => {
+                  console.log("display", this.state.display);
                   this.wan.injectJavaScript(`${this.state.copy};true;`);
-                  this.state.loading &&
-                    this.setState({ loading: false, display: this.wan });
+                  if (this.state.loading) {
+                    this.setState({ loading: false, display: "wan" });
+                  }
                 }}
                 onMessage={(e) => {
+                  console.log("addresses", e.nativeEvent.data);
                   AsyncStorage.setItem("addresses", e.nativeEvent.data);
                   const json = JSON.parse(e.nativeEvent.data);
                   json.lan = json.lan.trim();
-                  this.setState(json);
+                  console.log("setJSON", json);
+                  this.setState({ wan: json.wan });
                 }}
               />
             ) : null}
             {this.state.lan ? (
-              <WrappedWebView
-                display={this.state.loading || this.state.display === this.lan}
-                refFN={(ref) => {
-                  console.log("make ref", ref);
+              <WebView
+                style={
+                  this.state.display === "lan"
+                    ? styles.container
+                    : styles.hidden
+                }
+                containerStyle={
+                  this.state.display === "lan"
+                    ? styles.container
+                    : styles.hidden
+                }
+                key={this.state.lan}
+                ref={(ref) => {
+                  console.log("make ref lan", !!ref);
                   this.lan = ref;
                 }}
-                style={styles.container}
-                address={
-                  "http://" + this.state.lan + "/harness/cinny/?expo=true"
-                }
+                source={{
+                  uri: "http://" + this.state.lan + "/harness/cinny/?expo=true",
+                }}
+                onError={(e) => {
+                  console.log("error", e);
+                }}
                 onLoad={() => {
-                  console.log("load lan", this.lan);
+                  console.log(
+                    "load lan",
+                    this.state.lan,
+                    this.state.loading,
+                    !!this.lan,
+                    this.state.display
+                  );
                   this.lan.injectJavaScript(`${this.state.copy};true;`);
-                  this.state.loading &&
-                    this.setState({ loading: false, display: this.lan });
+                  if (this.state.loading) {
+                    console.log("update display");
+                    this.setState({ loading: false, display: "lan" });
+                  }
                 }}
                 onMessage={(e) => {
+                  console.log("addresses", e.nativeEvent.data);
                   AsyncStorage.setItem("addresses", e.nativeEvent.data);
                   const json = JSON.parse(e.nativeEvent.data);
                   json.lan = json.lan.trim();
-                  this.setState(json);
+                  console.log("setJSON", json);
+                  this.setState({ wan: json.wan });
                 }}
               />
             ) : null}
@@ -148,11 +200,18 @@ class MyWeb extends Component {
 export default MyWeb;
 
 MyWeb.defaultProps = {
-  devIP: Constants?.manifest?.extra?.devIP || "setup.local",
+  devIP: "setup.local",
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+
+  hidden: {
+    display: "none",
+    flex: 0,
+    height: "0%",
+    width: "0%",
   },
 });
