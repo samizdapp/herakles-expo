@@ -8,4 +8,7 @@ export default {
   extra: {
     devIP: process.env.DEV_IP || "setup.local",
   },
+  ios: {
+    bundleIdentifier: "herakles",
+  },
 };
