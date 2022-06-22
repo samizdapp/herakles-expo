@@ -38,7 +38,7 @@ class MyWeb extends Component {
           this.state.appState.match(/inactive|background/) &&
           nextAppState === "active"
         ) {
-          // this.
+          // this.reload();
         }
         this.setState({ appState: nextAppState });
       }
@@ -102,12 +102,16 @@ class MyWeb extends Component {
                     ? styles.container
                     : styles.hidden
                 }
+                onRenderProcessGone={(syntheticEvent) => {
+                  const { nativeEvent } = syntheticEvent;
+                  console.warn("WebView Crashed: ", nativeEvent.didCrash);
+                }}
                 containerStyle={
                   this.state.display === "wan"
                     ? styles.container
                     : styles.hidden
                 }
-                key={this.state.wan}
+                key={"wanwebview"}
                 ref={(ref) => {
                   console.log(
                     "make ref wan",
@@ -139,7 +143,17 @@ class MyWeb extends Component {
                   const json = JSON.parse(e.nativeEvent.data);
                   json.lan = json.lan.trim();
                   console.log("setJSON", json);
-                  this.setState({ wan: json.wan });
+                  if (this.state.wan !== json.wan) {
+                    this.setState({ wan: json.wan });
+                  }
+                }}
+                onContentProcessDidTerminate={(syntheticEvent) => {
+                  const { nativeEvent } = syntheticEvent;
+                  console.warn(
+                    "Content process terminated, reloading",
+                    nativeEvent
+                  );
+                  // this.refs.webview.reload();
                 }}
               />
             ) : null}
@@ -150,12 +164,24 @@ class MyWeb extends Component {
                     ? styles.container
                     : styles.hidden
                 }
+                onRenderProcessGone={(syntheticEvent) => {
+                  const { nativeEvent } = syntheticEvent;
+                  console.warn("WebView Crashed: ", nativeEvent.didCrash);
+                }}
+                onContentProcessDidTerminate={(syntheticEvent) => {
+                  const { nativeEvent } = syntheticEvent;
+                  console.warn(
+                    "Content process terminated, reloading",
+                    nativeEvent
+                  );
+                  // this.refs.webview.reload();
+                }}
                 containerStyle={
                   this.state.display === "lan"
                     ? styles.container
                     : styles.hidden
                 }
-                key={this.state.lan}
+                key={"lanwebview"}
                 ref={(ref) => {
                   console.log("make ref lan", !!ref);
                   this.lan = ref;
@@ -175,10 +201,6 @@ class MyWeb extends Component {
                     this.state.display
                   );
                   this.lan.injectJavaScript(`${this.state.copy};true;`);
-                  if (this.state.loading) {
-                    console.log("update display");
-                    this.setState({ loading: false, display: "lan" });
-                  }
                 }}
                 onMessage={(e) => {
                   console.log("addresses", e.nativeEvent.data);
@@ -186,7 +208,9 @@ class MyWeb extends Component {
                   const json = JSON.parse(e.nativeEvent.data);
                   json.lan = json.lan.trim();
                   console.log("setJSON", json);
-                  this.setState({ wan: json.wan });
+                  if (this.state.wan !== json.wan) {
+                    this.setState({ wan: json.wan });
+                  }
                 }}
               />
             ) : null}
