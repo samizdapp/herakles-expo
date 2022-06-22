@@ -28,34 +28,46 @@ class MyWeb extends Component {
     });
   }
 
+  inject() {
+    this.wan && this.wan.injectJavaScript(`${this.state.copy};true;`);
+    this.lan && this.lan.injectJavaScript(`${this.state.copy};true;`);
+  }
+
   componentDidMount() {
     this.fetchLocalFile();
     this.appStateSubscription = AppState.addEventListener(
       "change",
       (nextAppState) => {
+        let inject = false;
         console.log("nextAppState", nextAppState, this.state.appState);
         if (
           this.state.appState.match(/inactive|background/) &&
           nextAppState === "active"
         ) {
-          // this.reload();
+          inject = true;
         }
-        this.setState({ appState: nextAppState });
+        this.setState({ appState: nextAppState }, () => {
+          if (inject) {
+            console.log("re-injecting client", !!this.wan, !!this.lan);
+            this.inject();
+          }
+        });
       }
     );
     this.unsubscribeNetInfo = NetInfo.addEventListener((state) => {
       console.log("NetInfo", state);
       let reload = false;
 
-      if (this.state.net && this.state.net !== state) {
+      if (this.state.net && this.state.net !== state.ipAddress) {
         reload = true;
       }
       this.setState(
         {
-          net: state,
+          net: state.ipAddress,
         },
         () => {
           if (reload) {
+            console.log("do reload");
             this.reload();
           }
         }
