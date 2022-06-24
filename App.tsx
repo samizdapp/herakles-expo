@@ -76,15 +76,15 @@ class MyWeb extends Component {
 
     AsyncStorage.getItem("addresses")
       .then((r) => {
-        throw new Error();
+        // throw new Error();
         const routes = JSON.parse(r);
         routes.lan = routes.lan.trim();
         this.setState(routes);
       })
       .catch((e) => {
-        // this.setState({
-        //   lan: this.props.devIP,
-        // });
+        this.setState({
+          lan: this.props.devIP,
+        });
       });
   }
 
